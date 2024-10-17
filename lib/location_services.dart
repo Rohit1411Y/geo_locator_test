@@ -1,62 +1,29 @@
-import 'package:flutter/material.dart';
-import 'package:geolocator/geolocator.dart';
+// lib/location_service.dart
 
-Future<Position> determinePosition(BuildContext context) async {
-  bool serviceEnabled;
-  LocationPermission permission;
-  final GeolocatorPlatform _geolocatorPlatform = GeolocatorPlatform.instance;
+import 'dart:async';
+import 'package:flutter/services.dart';
 
-  serviceEnabled = await _geolocatorPlatform.isLocationServiceEnabled();
-  if (!serviceEnabled) {
-    return Future.error('Location services are disabled.');
-  }
+class LocationService {
+  static const MethodChannel _channel =
+      MethodChannel('com.yourcompany.location');
 
-  permission = await _geolocatorPlatform.checkPermission();
-  if (permission == LocationPermission.denied) {
-    permission = await _geolocatorPlatform.requestPermission();
-    if (permission == LocationPermission.denied) {
-      alertPopup(context);
-      return Future.error('Location permissions are denied');
+  /// Requests the current location from the native platform.
+  Future<Map<String, dynamic>> getCurrentLocation() async {
+    try {
+      final Map<dynamic, dynamic> result =
+          await _channel.invokeMethod('getCurrentLocation');
+      return Map<String, dynamic>.from(result);
+    } on PlatformException catch (e) {
+      throw 'Failed to get location: ${e.message}';
     }
   }
 
-  if (permission == LocationPermission.deniedForever) {
-    // Permissions are denied forever, handle appropriately.
-    alertPopup(context);
-    return Future.error(
-        'Location permissions are permanently denied, we cannot request permissions.');
+  /// Opens the app settings on the native platform.
+  Future<void> openAppSettings() async {
+    try {
+      await _channel.invokeMethod('openAppSettings');
+    } on PlatformException catch (e) {
+      throw 'Failed to open app settings: ${e.message}';
+    }
   }
-
-  // When we reach here, permissions are granted and we can
-  // continue accessing the position of the device.
-  try {
-    LocationSettings settings = const LocationSettings(
-        accuracy: LocationAccuracy.medium, timeLimit: Duration(seconds: 15));
-    return await _geolocatorPlatform.getCurrentPosition(
-        locationSettings: settings);
-  } catch (_) {
-    throw 'error';
-  }
-}
-
-alertPopup(BuildContext context) {
-  showDialog(
-      context: context,
-      builder: (context) {
-        return AlertDialog(
-          title: Text('Location Permission'),
-          content: Column(
-            children: [
-              Text('Location Permission Required'),
-              ElevatedButton(
-                  onPressed: () {
-                    final GeolocatorPlatform _geolocatorPlatform =
-                        GeolocatorPlatform.instance;
-                    _geolocatorPlatform.openAppSettings();
-                  },
-                  child: Text('Open app settings'))
-            ],
-          ),
-        );
-      });
 }
