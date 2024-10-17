@@ -32,9 +32,15 @@ Future<Position> determinePosition(BuildContext context) async {
   try {
     LocationSettings settings = const LocationSettings(
         accuracy: LocationAccuracy.medium, timeLimit: Duration(seconds: 15));
+    print('current location called');
     return await _geolocatorPlatform.getCurrentPosition(
         locationSettings: settings);
   } catch (_) {
+    Position? position = await _geolocatorPlatform.getLastKnownPosition();
+    print('last known position called');
+    if (position != null) {
+      return position;
+    }
     throw 'error';
   }
 }
